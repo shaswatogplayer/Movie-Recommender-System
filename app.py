@@ -71,7 +71,7 @@ body {
     text-align: center;
     font-size: 20px;
     font-weight: 600;
-    color: #ffffff;
+    color: red;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     box-shadow: 0px 8px 20px rgba(0,0,0,0.35);
 }
