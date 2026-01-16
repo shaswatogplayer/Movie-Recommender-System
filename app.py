@@ -3,6 +3,12 @@ import pickle
 import time
 import streamlit as st
 import gdown
+import requests
+import tempfile
+import streamlit.components.v1 as components
+import base64
+
+
 
 # ---------- PAGE CONFIG ----------
 st.set_page_config(
@@ -93,6 +99,40 @@ def recommend(movie):
     )
     return [movies.iloc[i[0]].title for i in distances[1:6]]
 
+def speak_movie_names(movie_list):
+    api_key = st.secrets["ELEVEN_API_KEY"]
+
+    text = "Here are the recommended movies for you. "
+
+    for i, movie in enumerate(movie_list, start=1):
+        text += f"Number {i}. {movie}. "
+
+    url = "https://api.elevenlabs.io/v1/text-to-speech/EXAVITQu4vr4xnSDxMaL"
+
+    headers = {
+        "xi-api-key": api_key,
+        "Content-Type": "application/json"
+    }
+
+    payload = {
+        "text": text,
+        "voice_settings": {
+            "stability": 0.45,
+            "similarity_boost": 0.75
+        }
+    }
+
+    response = requests.post(url, json=payload, headers=headers)
+
+    if response.status_code != 200:
+        st.error("Voice generation failed")
+        return None
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
+        fp.write(response.content)
+        return fp.name
+
+
 # ---------- COVER ----------
 st.markdown("""
 <div class="cover">
@@ -124,8 +164,10 @@ if st.button("✨ Show Recommendation"):
     progress.empty()
     status.text("Completed")
 
+    # ✅ Generate recommendations
     recommendations = recommend(selected_movie)
 
+    # ✅ Display cards
     st.subheader("Recommended Movies")
     cols = st.columns(5)
 
@@ -136,3 +178,25 @@ if st.button("✨ Show Recommendation"):
                 f"<div class='movie-card'>{movie}</div>",
                 unsafe_allow_html=True
             )
+
+    # 🔊 Voice reads exactly the card content
+    audio_file = speak_movie_names(recommendations)
+
+    if audio_file:
+        st.success("🔊 Playing voice recommendations")
+
+        with open(audio_file, "rb") as audio:
+            audio_bytes = audio.read()
+            encoded_audio = base64.b64encode(audio_bytes).decode()
+
+        components.html(
+            f"""
+            <audio autoplay hidden>
+            <source src="data:audio/mpeg;base64,{encoded_audio}" type="audio/mpeg">
+            </audio>
+            """,
+            height=0,
+        )
+
+
+
