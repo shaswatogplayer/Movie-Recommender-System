@@ -125,8 +125,10 @@ def speak_movie_names(movie_list):
     response = requests.post(url, json=payload, headers=headers)
 
     if response.status_code != 200:
-        st.error("Voice generation failed")
+        st.error(f"Voice generation failed ({response.status_code})")
+        st.code(response.text)
         return None
+
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
         fp.write(response.content)
