@@ -3,18 +3,7 @@ import pickle
 import time
 import streamlit as st
 import gdown
-import requests
-import tempfile
 import streamlit.components.v1 as components
-import base64
-from io import BytesIO
-from gtts import gTTS
-import os
-
-IS_DEPLOYED = "STREAMLIT_SERVER_HEADLESS" in os.environ
-
-
-
 
 # ---------- PAGE CONFIG ----------
 st.set_page_config(
@@ -48,11 +37,9 @@ st.markdown("""
 body {
     background: linear-gradient(135deg, #141e30, #243b55);
 }
-
 .main {
     background: linear-gradient(135deg, #141e30, #243b55);
 }
-
 .cover {
     background: linear-gradient(135deg, #cb2d3e, #ef473a);
     padding: 60px 30px;
@@ -61,19 +48,16 @@ body {
     text-align: center;
     box-shadow: 0px 14px 35px rgba(0,0,0,0.45);
 }
-
 .cover-title {
     font-size: 52px;
     font-weight: 800;
     color: #ffffff;
 }
-
 .cover-subtitle {
     font-size: 18px;
     color: #ffe6e6;
     margin-top: 10px;
 }
-
 .movie-card {
     background: rgba(255, 255, 255, 0.12);
     backdrop-filter: blur(12px);
@@ -83,11 +67,10 @@ body {
     text-align: center;
     font-size: 20px;
     font-weight: 600;
-    color: red;
+    color: #ff4d4d;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     box-shadow: 0px 8px 20px rgba(0,0,0,0.35);
 }
-
 .movie-card:hover {
     transform: scale(1.06);
     box-shadow: 0px 14px 30px rgba(0,0,0,0.55);
@@ -105,58 +88,11 @@ def recommend(movie):
     )
     return [movies.iloc[i[0]].title for i in distances[1:6]]
 
-def speak_elevenlabs(movie_list):
-    api_key = st.secrets["ELEVEN_API_KEY"]
-
-    text = "Here are the recommended movies. "
+def build_speech_text(movie_list):
+    text = "Here are the recommended movies for you. "
     for i, movie in enumerate(movie_list, start=1):
-        text += f"Number {i}. {movie}. "
-
-    url = "https://api.elevenlabs.io/v1/text-to-speech/EXAVITQu4vr4xnSDxMaL"
-
-    headers = {
-        "Accept": "audio/mpeg",
-        "xi-api-key": api_key,
-        "Content-Type": "application/json"
-    }
-
-    payload = {
-        "text": text,
-        "voice_settings": {
-            "stability": 0.45,
-            "similarity_boost": 0.75
-        }
-    }
-
-    response = requests.post(url, json=payload, headers=headers)
-
-    if response.status_code != 200:
-        return None
-
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
-        fp.write(response.content)
-        return fp.name
-
-def speak_gtts(movie_list):
-    try:
-        text = "Here are the recommended movies. "
-        for i, movie in enumerate(movie_list, start=1):
-            text += f"Number {i}. {movie}. "
-
-        tts = gTTS(text=text, lang="en")
-
-        mp3_fp = BytesIO()
-        tts.write_to_fp(mp3_fp)
-        mp3_fp.seek(0)
-
-        return mp3_fp.read()
-
-    except Exception as e:
-        st.error(f"gTTS failed: {e}")
-        return None
-
-
-
+        text += f"Number {i}, {movie}. "
+    return text
 
 # ---------- COVER ----------
 st.markdown("""
@@ -182,46 +118,45 @@ if st.button("✨ Show Recommendation"):
     status = st.empty()
 
     for i in range(0, 101, 5):
-        time.sleep(0.05)
+        time.sleep(0.04)
         progress.progress(i)
         status.text(f"Loading... {i}%")
 
     progress.empty()
     status.text("Completed")
 
-    # ✅ Generate recommendations
+    # Generate recommendations
     recommendations = recommend(selected_movie)
 
-    # ✅ Display cards
+    # Display cards
     st.subheader("Recommended Movies")
     cols = st.columns(5)
 
     for idx, movie in enumerate(recommendations):
-        time.sleep(0.15)
+        time.sleep(0.1)
         with cols[idx]:
             st.markdown(
                 f"<div class='movie-card'>{movie}</div>",
                 unsafe_allow_html=True
             )
 
-    # 🔊 Voice reads exactly the card content
-    if IS_DEPLOYED:
-        audio_file = speak_gtts(recommendations)
-        st.info("🔊 Using safe voice for deployed version")
-    else:
-        audio_file = speak_elevenlabs(recommendations)
-        
-        
-    if audio_file:
-        st.success("🔊 Click play to hear recommendations")
-        st.audio(audio_file, format="audio/mp3")
-    else:
-        st.error("❌ Audio not available")
+    # 🔊 Browser-based Voice (SpeechSynthesis API)
+    speech_text = build_speech_text(recommendations)
 
+    components.html(
+        f"""
+        <script>
+            const text = `{speech_text}`;
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'en-US';
+            utterance.rate = 1;
+            utterance.pitch = 1;
 
-  
+            window.speechSynthesis.cancel();
+            window.speechSynthesis.speak(utterance);
+        </script>
+        """,
+        height=0
+    )
 
-
-
-
-
+    st.success("🔊 Voice played using browser speech engine")
