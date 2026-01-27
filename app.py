@@ -137,15 +137,21 @@ def speak_elevenlabs(movie_list):
         return fp.name
 
 def speak_gtts(movie_list):
-    text = "Here are the recommended movies. "
-    for i, movie in enumerate(movie_list, start=1):
-        text += f"Number {i}. {movie}. "
+    try:
+        text = "Here are the recommended movies. "
+        for i, movie in enumerate(movie_list, start=1):
+            text += f"Number {i}. {movie}. "
 
-    tts = gTTS(text=text, lang="en")
+        tts = gTTS(text=text, lang="en")
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
-        tts.save(fp.name)
-        return fp.name
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
+            tts.save(fp.name)
+            return fp.name
+
+    except Exception as e:
+        st.error(f"gTTS failed: {e}")
+        return None
+
 
 
 # ---------- COVER ----------
@@ -202,11 +208,15 @@ if st.button("✨ Show Recommendation"):
         audio_file = speak_elevenlabs(recommendations)
         
         
-    if audio_file:
+    if audio_file and os.path.exists(audio_file):
         st.success("🔊 Click play to hear recommendations")
 
-        with open(audio_file, "rb") as audio:
-            st.audio(audio.read(), format="audio/mp3")
+        audio_bytes = open(audio_file, "rb").read()
+        st.audio(audio_bytes, format="audio/mp3")
+
+    else:
+        st.error("❌ Audio file not generated")
+
 
 
 
