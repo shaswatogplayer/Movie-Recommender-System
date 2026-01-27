@@ -200,23 +200,14 @@ if st.button("✨ Show Recommendation"):
         st.info("🔊 Using safe voice for deployed version")
     else:
         audio_file = speak_elevenlabs(recommendations)
-        st.info("🔊 Using premium ElevenLabs voice (local)")
+        
         
     if audio_file:
-        st.success("🔊 Playing voice recommendations")
+        st.success("🔊 Click play to hear recommendations")
 
         with open(audio_file, "rb") as audio:
-            audio_bytes = audio.read()
-            encoded_audio = base64.b64encode(audio_bytes).decode()
+            st.audio(audio.read(), format="audio/mp3")
 
-        components.html(
-            f"""
-            <audio autoplay hidden>
-            <source src="data:audio/mpeg;base64,{encoded_audio}" type="audio/mpeg">
-            </audio>
-            """,
-            height=0,
-        )
 
 
 
