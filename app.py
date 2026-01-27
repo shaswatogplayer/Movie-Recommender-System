@@ -110,6 +110,7 @@ def speak_movie_names(movie_list):
     url = "https://api.elevenlabs.io/v1/text-to-speech/EXAVITQu4vr4xnSDxMaL"
 
     headers = {
+        "Accept": "audio/mpeg",
         "xi-api-key": api_key,
         "Content-Type": "application/json"
     }
