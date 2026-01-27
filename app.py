@@ -7,6 +7,7 @@ import requests
 import tempfile
 import streamlit.components.v1 as components
 import base64
+from io import BytesIO
 from gtts import gTTS
 import os
 
@@ -144,13 +145,16 @@ def speak_gtts(movie_list):
 
         tts = gTTS(text=text, lang="en")
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
-            tts.save(fp.name)
-            return fp.name
+        mp3_fp = BytesIO()
+        tts.write_to_fp(mp3_fp)
+        mp3_fp.seek(0)
+
+        return mp3_fp.read()
 
     except Exception as e:
         st.error(f"gTTS failed: {e}")
         return None
+
 
 
 
@@ -208,14 +212,14 @@ if st.button("✨ Show Recommendation"):
         audio_file = speak_elevenlabs(recommendations)
         
         
-    if audio_file and os.path.exists(audio_file):
+    if audio_file:
         st.success("🔊 Click play to hear recommendations")
-
-        audio_bytes = open(audio_file, "rb").read()
-        st.audio(audio_bytes, format="audio/mp3")
-
+        st.audio(audio_file, format="audio/mp3")
     else:
-        st.error("❌ Audio file not generated")
+        st.error("❌ Audio not available")
+
+
+  
 
 
 
