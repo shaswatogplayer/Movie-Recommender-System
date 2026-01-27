@@ -4,4 +4,4 @@ numpy
 scikit-learn
 requests
 gdown
-requests
+gTTS

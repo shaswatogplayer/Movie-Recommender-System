@@ -7,6 +7,11 @@ import requests
 import tempfile
 import streamlit.components.v1 as components
 import base64
+from gtts import gTTS
+import os
+
+IS_DEPLOYED = "STREAMLIT_SERVER_HEADLESS" in os.environ
+
 
 
 
@@ -99,11 +104,10 @@ def recommend(movie):
     )
     return [movies.iloc[i[0]].title for i in distances[1:6]]
 
-def speak_movie_names(movie_list):
+def speak_elevenlabs(movie_list):
     api_key = st.secrets["ELEVEN_API_KEY"]
 
-    text = "Here are the recommended movies for you. "
-
+    text = "Here are the recommended movies. "
     for i, movie in enumerate(movie_list, start=1):
         text += f"Number {i}. {movie}. "
 
@@ -126,13 +130,21 @@ def speak_movie_names(movie_list):
     response = requests.post(url, json=payload, headers=headers)
 
     if response.status_code != 200:
-        st.error(f"Voice generation failed ({response.status_code})")
-        st.code(response.text)
         return None
-
 
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
         fp.write(response.content)
+        return fp.name
+
+def speak_gtts(movie_list):
+    text = "Here are the recommended movies. "
+    for i, movie in enumerate(movie_list, start=1):
+        text += f"Number {i}. {movie}. "
+
+    tts = gTTS(text=text, lang="en")
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
+        tts.save(fp.name)
         return fp.name
 
 
@@ -183,8 +195,13 @@ if st.button("✨ Show Recommendation"):
             )
 
     # 🔊 Voice reads exactly the card content
-    audio_file = speak_movie_names(recommendations)
-
+    if IS_DEPLOYED:
+        audio_file = speak_gtts(recommendations)
+        st.info("🔊 Using safe voice for deployed version")
+    else:
+        audio_file = speak_elevenlabs(recommendations)
+        st.info("🔊 Using premium ElevenLabs voice (local)")
+        
     if audio_file:
         st.success("🔊 Playing voice recommendations")
 
