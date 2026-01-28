@@ -110,6 +110,8 @@ selected_movie = st.selectbox(
     movies["title"].values
 )
 
+# mute_audio = st.checkbox("🔇 Mute voice", value=False)
+
 if st.button("✨ Show Recommendation"):
 
     st.subheader("Generating recommendations...")
@@ -159,4 +161,5 @@ if st.button("✨ Show Recommendation"):
         height=0
     )
 
-    st.success("🔊 Voice played using browser speech engine")
+    st.success("Hope you like my services 🎬😊")
+
